@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>公路工程质检文控 Demo</title>
+  <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --panel2: #243044;
+      --line: #2f3f55;
+      --text: #e8eef7;
+      --muted: #8fa3bc;
+      --accent: #c39e47;
+      --accent2: #3d8bfd;
+      --ok: #3dd68c;
+      --warn: #f5a524;
+      --bad: #f31260;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, #1c2a40 0%, var(--bg) 55%);
+      color: var(--text); min-height: 100vh;
+    }
+    a { color: var(--accent2); }
+    .login-wrap {
+      min-height: 100vh; display: grid; place-items: center; padding: 24px;
+      background: linear-gradient(135deg, #1a2332 0%, #0f1419 50%, #2a2114 100%);
+    }
+    .login-card {
+      width: min(420px, 100%); background: rgba(26,35,50,.92); border: 1px solid var(--line);
+      border-radius: 16px; padding: 32px; box-shadow: 0 20px 60px rgba(0,0,0,.35);
+    }
+    .login-card h1 { margin: 0 0 8px; font-size: 24px; letter-spacing: 1px; }
+    .login-card p { margin: 0 0 24px; color: var(--muted); font-size: 14px; }
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    input, select, textarea {
+      width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line);
+      background: var(--panel2); color: var(--text); margin-bottom: 14px; outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    button {
+      border: 0; border-radius: 8px; padding: 10px 14px; cursor: pointer;
+      background: var(--accent); color: #1a1408; font-weight: 600;
+    }
+    button.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
+    button.danger { background: var(--bad); color: #fff; }
+    button.ok { background: var(--ok); color: #062416; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .hint { font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .error { color: var(--bad); font-size: 13px; margin-bottom: 10px; }
+    .shell { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+    .side {
+      background: rgba(15,20,25,.9); border-right: 1px solid var(--line); padding: 18px 12px;
+    }
+    .brand { font-weight: 700; padding: 8px 10px 18px; font-size: 15px; }
+    .brand small { display: block; color: var(--muted); font-weight: 400; margin-top: 4px; }
+    .nav button {
+      width: 100%; text-align: left; background: transparent; color: var(--text);
+      margin-bottom: 4px; border: 1px solid transparent;
+    }
+    .nav button.active { background: var(--panel2); border-color: var(--line); color: var(--accent); }
+    .main { padding: 18px 22px 40px; }
+    .topbar {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      margin-bottom: 18px; flex-wrap: wrap;
+    }
+    .cards { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .card {
+      background: linear-gradient(180deg, var(--panel2), var(--panel));
+      border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+    }
+    .card .n { font-size: 28px; font-weight: 700; color: var(--accent); }
+    .card .l { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .panel {
+      background: rgba(26,35,50,.85); border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 10px 8px; text-align: left; }
+    th { color: var(--muted); font-weight: 600; }
+    .tree details { margin-left: 12px; }
+    .tree summary { cursor: pointer; padding: 4px 0; }
+    .tree .node {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 4px 0;
+    }
+    .tag {
+      display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px;
+      background: #31445f; color: #c9d7ea;
+    }
+    .tag.draft { background: #3a3f4b; }
+    .tag.submitted { background: #1e3a5f; color: #8ec5ff; }
+    .tag.approved { background: #143d2c; color: #7dffa8; }
+    .tag.rejected { background: #4a1d2b; color: #ffb0c4; }
+    .grid-points { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .split { display: grid; grid-template-columns: 1.1fr 1.4fr; gap: 14px; }
+    @media (max-width: 960px) {
+      .shell { grid-template-columns: 1fr; }
+      .side { display: flex; gap: 8px; overflow-x: auto; }
+      .cards { grid-template-columns: repeat(2, 1fr); }
+      .split { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const { createApp, ref, computed, onMounted, watch } = Vue;
+const api = async (url, opts = {}) => {
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+  const token = localStorage.getItem('qms_token');
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(url, { ...opts, headers: opts.body instanceof FormData ? { Authorization: headers.Authorization } : headers, body: opts.body instanceof FormData ? opts.body : opts.body ? JSON.stringify(opts.body) : undefined });
+  if (res.status === 401) {
+    localStorage.removeItem('qms_token');
+    location.reload();
+    throw new Error('未登录');
+  }
+  const ct = res.headers.get('content-type') || '';
+  const data = ct.includes('application/json') ? await res.json() : await res.blob();
+  if (!res.ok) {
+    const msg = data?.detail?.message || data?.detail || data?.errors || JSON.stringify(data);
+    throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+  }
+  return data;
+};
+
+createApp({
+  setup() {
+    const token = ref(localStorage.getItem('qms_token') || '');
+    const user = ref(null);
+    const view = ref('home');
+    const err = ref('');
+    const loading = ref(false);
+    const loginForm = ref({ username: 'qc01', password: '888888' });
+    const projects = ref([]);
+    const projectId = ref('');
+    const sectionId = ref('');
+    const stats = ref({ todo: 0, done: 0, rejected: 0, all: 0 });
+    const tasks = ref([]);
+    const tab = ref('todo');
+    const tree = ref([]);
+    const templates = ref([]);
+    const selectedNode = ref(null);
+    const currentInstance = ref(null);
+    const formData = ref({});
+    const audit = ref([]);
+    const fileList = ref([]);
+
+    const currentProject = computed(() => projects.value.find(p => p.id === projectId.value));
+    const sections = computed(() => currentProject.value?.sections || []);
+
+    const statusLabel = (s) => ({ draft: '草稿', submitted: '待签认', approved: '已签认', rejected: '已退回', archived: '已归档' }[s] || s);
+
+    async function doLogin() {
+      err.value = '';
+      loading.value = true;
+      try {
+        const body = new URLSearchParams();
+        body.set('username', loginForm.value.username);
+        body.set('password', loginForm.value.password);
+        const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '登录失败');
+        localStorage.setItem('qms_token', data.access_token);
+        token.value = data.access_token;
+        await bootstrap();
+      } catch (e) { err.value = e.message; }
+      finally { loading.value = false; }
+    }
+
+    function logout() {
+      localStorage.removeItem('qms_token');
+      token.value = '';
+      user.value = null;
+    }
+
+    async function bootstrap() {
+      user.value = await api('/api/auth/me');
+      projects.value = await api('/api/projects');
+      if (projects.value.length) {
+        projectId.value = projects.value[0].id;
+        sectionId.value = projects.value[0].sections[0]?.id || '';
+      }
+      templates.value = await api('/api/forms/templates');
+      await refreshAll();
+    }
+
+    async function refreshAll() {
+      if (!projectId.value) return;
+      stats.value = await api(`/api/tasks/stats?project_id=${projectId.value}`);
+      await loadTasks();
+      if (sectionId.value) tree.value = await api(`/api/wbs/tree?section_id=${sectionId.value}`);
+      fileList.value = await api(`/api/files?project_id=${projectId.value}`);
+      try { audit.value = await api('/api/meta/audit?limit=30'); } catch { audit.value = []; }
+    }
+
+    async function loadTasks() {
+      tasks.value = await api(`/api/tasks?project_id=${projectId.value}&tab=${tab.value}`);
+    }
+
+    watch([projectId, sectionId], refreshAll);
+    watch(tab, loadTasks);
+
+    async function createFromNode(node, code) {
+      err.value = '';
+      try {
+        const res = await api('/api/forms/instances', {
+          method: 'POST',
+          body: {
+            template_code: code,
+            wbs_id: node.id,
+            data: {
+              project_name: currentProject.value?.name || '',
+              unit_name: node.path,
+              div_name: node.name,
+              component_name: node.name,
+              stake_from: 'K89+710',
+              stake_to: 'K90+200',
+              design_limit: 10,
+              points: [0,0,0,0,0,0,0,0,0,0],
+              cure_method: ['覆盖'],
+              recorder: user.value?.display_name || '',
+              contractor: '施工六标项目部',
+            }
+          }
+        });
+        currentInstance.value = res.instance;
+        formData.value = { ...res.instance.data };
+        view.value = 'form';
+        await refreshAll();
+      } catch (e) { err.value = e.message; alert(e.message); }
+    }
+
+    async function saveForm(submit=false) {
+      try {
+        const res = await api(`/api/forms/instances/${currentInstance.value.id}`, {
+          method: 'PUT',
+          body: { data: formData.value, submit }
+        });
+        currentInstance.value = res.instance;
+        formData.value = { ...res.instance.data };
+        alert(submit ? '已提交监理签认' : '已保存草稿');
+        await refreshAll();
+        if (submit) view.value = 'home';
+      } catch (e) { alert(e.message); }
+    }
+
+    async function openTask(t) {
+      const inst = await api(`/api/forms/instances/${t.form_instance_id}`);
+      currentInstance.value = inst;
+      formData.value = { ...inst.data };
+      view.value = 'form';
+    }
+
+    async function act(action) {
+      const comment = action === 'reject' ? (prompt('退回原因') || '请修改后重提') : (prompt('签认意见') || '同意');
+      const detail = await api(`/api/tasks/${tasks.value.find(x => x.form_instance_id === currentInstance.value.id)?.id || ''}`);
+      // find task id via list
+      const all = await api(`/api/tasks?project_id=${projectId.value}&tab=all`);
+      const task = all.find(x => x.form_instance_id === currentInstance.value.id);
+      if (!task) return alert('未找到任务');
+      await api(`/api/tasks/${task.id}/action`, { method: 'POST', body: { action, comment } });
+      alert(action === 'approve' ? '已签认' : '已退回');
+      await refreshAll();
+      view.value = 'home';
+    }
+
+    async function addWbs() {
+      const name = prompt('节点名称', '新分项');
+      if (!name) return;
+      const code = prompt('编码', `SG6-NEW-${Date.now().toString().slice(-4)}`);
+      await api('/api/wbs', {
+        method: 'POST',
+        body: {
+          section_id: sectionId.value,
+          parent_id: selectedNode.value?.id || null,
+          name, code,
+          node_type: selectedNode.value ? 'item' : 'unit',
+          specialty: selectedNode.value?.specialty || '路基',
+        }
+      });
+      tree.value = await api(`/api/wbs/tree?section_id=${sectionId.value}`);
+    }
+
+    async function uploadFile(e) {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      const fd = new FormData();
+      fd.append('file', f);
+      await api(`/api/files/upload?project_id=${projectId.value}`, { method: 'POST', body: fd });
+      fileList.value = await api(`/api/files?project_id=${projectId.value}`);
+    }
+
+    function renderTree(nodes) {
+      return nodes;
+    }
+
+    onMounted(async () => {
+      if (token.value) {
+        try { await bootstrap(); } catch { logout(); }
+      }
+    });
+
+    return {
+      token, user, view, err, loading, loginForm, projects, projectId, sectionId, sections,
+      stats, tasks, tab, tree, templates, selectedNode, currentInstance, formData, audit, fileList,
+      currentProject, statusLabel, doLogin, logout, refreshAll, loadTasks, createFromNode,
+      saveForm, openTask, act, addWbs, uploadFile, renderTree
+    };
+  },
+  template: `
+  <div v-if="!token" class="login-wrap">
+    <div class="login-card">
+      <h1>公路工程质检文控</h1>
+      <p>阶段 0–3 Demo · WBS → 填表 → 签认闭环</p>
+      <div class="error" v-if="err">{{ err }}</div>
+      <label>用户名</label>
+      <input v-model="loginForm.username" placeholder="qc01 / jl01 / admin" />
+      <label>密码</label>
+      <input v-model="loginForm.password" type="password" @keyup.enter="doLogin" />
+      <button style="width:100%;margin-bottom:12px" :disabled="loading" @click="doLogin">登 录</button>
+      <div class="hint">
+        qc01/888888 质检员 · jl01/888888 监理 · sg01/888888 施工员 · admin/admin123<br/>
+        表格样式可对照 GLAF：http://fjhmtd.com:15123/glaf/login.html
+      </div>
+    </div>
+  </div>
+
+  <div v-else class="shell">
+    <aside class="side">
+      <div class="brand">质检文控 Demo<small>{{ user?.display_name }}</small></div>
+      <div class="nav">
+        <button :class="{active: view==='home'}" @click="view='home'">首页待办</button>
+        <button :class="{active: view==='wbs'}" @click="view='wbs'">工程划分</button>
+        <button :class="{active: view==='form'}" @click="view='form'">质检填报</button>
+        <button :class="{active: view==='files'}" @click="view='files'">文件/审计</button>
+        <button class="secondary" @click="logout">退出</button>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="topbar">
+        <div class="row" style="margin:0">
+          <select v-model="projectId" style="width:auto;min-width:220px;margin:0">
+            <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
+          </select>
+          <select v-model="sectionId" style="width:auto;min-width:140px;margin:0">
+            <option v-for="s in sections" :key="s.id" :value="s.id">{{ s.name }}</option>
+          </select>
+        </div>
+        <div class="hint">角色：{{ (user?.roles||[]).map(r=>r.role_name).join(' / ') }}</div>
+      </div>
+
+      <template v-if="view==='home'">
+        <div class="cards">
+          <div class="card"><div class="n">{{ stats.todo }}</div><div class="l">待办任务</div></div>
+          <div class="card"><div class="n">{{ stats.done }}</div><div class="l">已办/签认</div></div>
+          <div class="card"><div class="n">{{ stats.rejected }}</div><div class="l">退回</div></div>
+          <div class="card"><div class="n">{{ stats.all }}</div><div class="l">全部任务</div></div>
+        </div>
+        <div class="panel">
+          <div class="row">
+            <button :class="{secondary: tab!=='todo'}" @click="tab='todo'">待办</button>
+            <button :class="{secondary: tab!=='done'}" @click="tab='done'">已办</button>
+            <button :class="{secondary: tab!=='rejected'}" @click="tab='rejected'">退回</button>
+            <button :class="{secondary: tab!=='all'}" @click="tab='all'">全部</button>
+            <button class="secondary" @click="refreshAll">刷新</button>
+          </div>
+          <table>
+            <thead><tr><th>任务</th><th>状态</th><th>角色</th><th></th></tr></thead>
+            <tbody>
+              <tr v-for="t in tasks" :key="t.id">
+                <td>{{ t.title }}</td>
+                <td><span class="tag" :class="t.status">{{ statusLabel(t.status) }}</span></td>
+                <td>{{ t.assignee_role }}</td>
+                <td><button class="secondary" @click="openTask(t)">打开</button></td>
+              </tr>
+              <tr v-if="!tasks.length"><td colspan="4" style="color:#8fa3bc">暂无任务。请到「工程划分」生成质检表。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
+
+      <template v-else-if="view==='wbs'">
+        <div class="split">
+          <div class="panel">
+            <div class="row">
+              <strong>WBS 树</strong>
+              <button @click="addWbs">新增节点</button>
+              <a :href="'/api/wbs/export?section_id='+sectionId" target="_blank">导出 Excel</a>
+            </div>
+            <div class="tree">
+              <div v-for="n in tree" :key="n.id">
+                <div class="node">
+                  <button class="secondary" @click="selectedNode=n">选</button>
+                  <strong>{{ n.name }}</strong>
+                  <span class="tag">{{ n.node_type }}</span>
+                  <span class="hint">{{ n.code }}</span>
+                </div>
+                <div v-for="c in n.children" :key="c.id" style="margin-left:16px">
+                  <div class="node">
+                    <button class="secondary" @click="selectedNode=c">选</button>
+                    <span>{{ c.name }}</span>
+                    <span class="tag">{{ c.node_type }}</span>
+                  </div>
+                  <div v-for="i in c.children" :key="i.id" style="margin-left:16px">
+                    <div class="node">
+                      <button class="secondary" @click="selectedNode=i">选</button>
+                      <span>{{ i.name }}</span>
+                      <span class="tag">{{ i.specialty || i.node_type }}</span>
+                      <button v-for="code in (i.default_template_codes||[])" :key="code" @click="createFromNode(i, code)">开表 {{ code }}</button>
+                    </div>
+                    <div v-for="p in i.children" :key="p.id" style="margin-left:16px">
+                      <div class="node">
+                        <button class="secondary" @click="selectedNode=p">选</button>
+                        <span>{{ p.name }}</span>
+                        <button v-for="code in (p.default_template_codes||[])" :key="code" @click="createFromNode(p, code)">开表 {{ code }}</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <h3 style="margin-top:0">选中节点 / 模板映射</h3>
+            <div v-if="selectedNode">
+              <p><b>{{ selectedNode.name }}</b> · {{ selectedNode.code }}</p>
+              <p class="hint">类型 {{ selectedNode.node_type }} · 专业 {{ selectedNode.specialty }} · path {{ selectedNode.path }}</p>
+              <p>默认用表：{{ (selectedNode.default_template_codes||[]).join(', ') || '无' }}</p>
+              <div class="row">
+                <button v-for="t in templates" :key="t.code" @click="createFromNode(selectedNode, t.code)">{{ t.code }} {{ t.name }}</button>
+              </div>
+            </div>
+            <p v-else class="hint">点击左侧「选」选择节点，再开表。</p>
+            <hr style="border-color:var(--line)" />
+            <h4>已注册模板</h4>
+            <ul>
+              <li v-for="t in templates" :key="t.id">{{ t.code }} · {{ t.name }} · {{ t.kind }}</li>
+            </ul>
+          </div>
+        </div>
+      </template>
+
+      <template v-else-if="view==='form'">
+        <div class="panel" v-if="currentInstance">
+          <div class="row">
+            <h3 style="margin:0;flex:1">{{ currentInstance.title }}</h3>
+            <span class="tag" :class="currentInstance.status">{{ statusLabel(currentInstance.status) }}</span>
+          </div>
+          <p class="hint">{{ currentInstance.template?.code }} · {{ currentInstance.template?.name }} · {{ currentInstance.template?.kind }}</p>
+          <div v-for="f in (currentInstance.template?.schema_json?.fields||[])" :key="f.key">
+            <label>{{ f.label }}<span v-if="f.required"> *</span></label>
+            <div v-if="f.type==='multi'" class="row">
+              <label v-for="opt in f.options" :key="opt" style="display:flex;gap:6px;align-items:center;margin:0">
+                <input type="checkbox" :value="opt" v-model="formData[f.key]" style="width:auto;margin:0" :disabled="currentInstance.status==='submitted'||currentInstance.status==='approved'" /> {{ opt }}
+              </label>
+            </div>
+            <div v-else-if="f.type==='grid'" class="grid-points">
+              <input v-for="(_,idx) in (formData.points||[])" :key="idx" type="number" v-model.number="formData.points[idx]" :disabled="currentInstance.status==='submitted'||currentInstance.status==='approved'" />
+            </div>
+            <textarea v-else-if="f.type==='text'" v-model="formData[f.key]" :disabled="f.readonly || currentInstance.status==='submitted'||currentInstance.status==='approved'"></textarea>
+            <input v-else v-model="formData[f.key]" :type="f.type==='number'?'number':'text'" :disabled="f.readonly || currentInstance.status==='submitted'||currentInstance.status==='approved'" />
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button v-if="currentInstance.status==='draft'||currentInstance.status==='rejected'" @click="saveForm(false)">保存草稿</button>
+            <button class="ok" v-if="currentInstance.status==='draft'||currentInstance.status==='rejected'" @click="saveForm(true)">提交监理</button>
+            <button class="ok" v-if="currentInstance.status==='submitted'" @click="act('approve')">签认通过</button>
+            <button class="danger" v-if="currentInstance.status==='submitted'" @click="act('reject')">退回</button>
+            <button class="secondary" @click="view='home'">返回待办</button>
+          </div>
+        </div>
+        <div class="panel" v-else>
+          <p class="hint">尚未打开表单。请从「工程划分」点击「开表」。</p>
+        </div>
+      </template>
+
+      <template v-else>
+        <div class="split">
+          <div class="panel">
+            <h3 style="margin-top:0">附件上传</h3>
+            <input type="file" @change="uploadFile" />
+            <table>
+              <thead><tr><th>文件</th><th>大小</th></tr></thead>
+              <tbody>
+                <tr v-for="f in fileList" :key="f.id"><td>{{ f.filename }}</td><td>{{ f.size }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="panel">
+            <h3 style="margin-top:0">审计日志（管理员）</h3>
+            <table>
+              <thead><tr><th>时间</th><th>用户</th><th>动作</th><th>详情</th></tr></thead>
+              <tbody>
+                <tr v-for="a in audit" :key="a.id">
+                  <td>{{ a.created_at }}</td><td>{{ a.username }}</td><td>{{ a.action }}</td><td>{{ a.detail }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </template>
+    </main>
+  </div>
+  `
+}).mount('#app');
+</script>
+</body>
+</html>
