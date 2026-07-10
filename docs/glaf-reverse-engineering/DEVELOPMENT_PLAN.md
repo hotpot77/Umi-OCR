@@ -288,3 +288,5 @@ packages/print-templates
 
 对标 GLAF 文控质检，正确路径是 **「WBS 中台 + 质检闭环 + 文控归档」三步走**，而不是先造无编码平台。  
 把阶段 3 的闭环做扎实，就具备试点与打磨产品的基础；平台化能力放到阶段 6，用实施反馈驱动。
+
+可复用组件与行业对标清单见：[`REFERENCE_INVENTORY.md`](./REFERENCE_INVENTORY.md)。
